@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from communicator import generate_reply
 import praw
 
 load_dotenv()
@@ -21,7 +22,7 @@ MIN_COMMENT_NB = 3
 
 POST_LIMIT = 500
 COMMENT_LIMIT = 15
-SUB = "socialanxiety"
+SUB = "Advice"
 
 def is_ratio_extreme(ratio):
     return ratio >= MIN_POSITIVE_RATIO or ratio <= MAX_NEGATIVE_RATIO
@@ -63,8 +64,9 @@ for post in subreddit.new(limit=POST_LIMIT):
             
 
 if(best_post != None):
-    print(best_post.title)
-    print(best_post.url)
-    print(best_post.selftext)
+    print("Target post :", best_post.title + " (" +best_post.url+")")
+    response = generate_reply(best_post.title, best_post.selftext, subreddit.display_name)
+    print("\n💬 Answer generated :\n")
+    print(response)
 else:
     print("No interesting post found")
