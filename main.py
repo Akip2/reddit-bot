@@ -1,5 +1,5 @@
 import os
-from dotenv import load_dotenv, dotenv_values 
+from dotenv import load_dotenv
 import praw
 
 load_dotenv()
@@ -14,9 +14,24 @@ assert CLIENT_SECRET, "CLIENT_SECRET missing"
 assert REDDIT_USERNAME, "REDDIT_USERNAME missing"
 assert PASSWORD, "PASSWORD missing"
 
-MIN_RATIO = 0.5
-LIMIT = 500
+# We only want to interact with extreme posts, either with an extremly positive or negative upvote ratio
+MIN_POSITIVE_RATIO = 0.8 # Min ratio to interact with a "positive" post
+MAX_NEGATIVE_RATIO = 0.3 # Max ratio to interact with a "negative" post
+MIN_COMMENT_NB = 3
+
+POST_LIMIT = 500
+COMMENT_LIMIT = 15
 SUB = "socialanxiety"
+
+def is_ratio_extreme(ratio):
+    return ratio >= MIN_POSITIVE_RATIO or ratio <= MAX_NEGATIVE_RATIO
+
+def calculate_score(ratio, num_comments):
+    if ratio >= MIN_POSITIVE_RATIO:
+        return ratio * 10 + num_comments
+    elif ratio <= MAX_NEGATIVE_RATIO:
+        return (1 - ratio) * 10 + num_comments
+    return 0
 
 reddit = praw.Reddit(
     client_id=CLIENT_ID,
@@ -30,9 +45,26 @@ print("Connected as :", reddit.user.me())
 
 subreddit = reddit.subreddit(SUB)
 
-for post in subreddit.new(limit=LIMIT):
-    if(post.upvote_ratio >= MIN_RATIO):
-        print(post.title)
-        print(post.url)
-        print(post.selftext)
-        print("---------------")
+best_post = None
+best_score = 0
+for post in subreddit.new(limit=POST_LIMIT):
+    ratio = post.upvote_ratio
+    num_comments = post.num_comments
+    
+    if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
+        positive = ratio >= MIN_POSITIVE_RATIO
+        score = 0
+        
+        score = calculate_score(ratio, num_comments)
+            
+        if(score > best_score):
+            best_score = score
+            best_post = post
+            
+
+if(best_post != None):
+    print(best_post.title)
+    print(best_post.url)
+    print(best_post.selftext)
+else:
+    print("No interesting post found")
