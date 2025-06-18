@@ -3,10 +3,8 @@ import random
 from dotenv import load_dotenv
 from communicator import generate_reply
 import praw
-import io
-import sys
-
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+import time
+import datetime
 
 load_dotenv()
 
@@ -75,36 +73,43 @@ reddit = praw.Reddit(
 
 print("Connected as :", reddit.user.me())
 
-sub_name = get_random_sub()
-subreddit = reddit.subreddit(sub_name)
-print("Target sub : "+sub_name)
+while True: 
+    sub_name = get_random_sub()
+    subreddit = reddit.subreddit(sub_name)
+    print("Target sub : "+sub_name)
 
-best_post = None
-best_score = 0
-for post in subreddit.new(limit=POST_LIMIT):
-    if not post.is_self:
-        continue
-    
-    ratio = post.upvote_ratio
-    num_comments = post.num_comments
-    
-    if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
-        positive = ratio >= MIN_POSITIVE_RATIO
+    best_post = None
+    best_score = 0
+    for post in subreddit.new(limit=POST_LIMIT):
+        if not post.is_self:
+            continue
+        
+        ratio = post.upvote_ratio
+        num_comments = post.num_comments
+        
+        if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
+            positive = ratio >= MIN_POSITIVE_RATIO
+                    
+            score = calculate_score(ratio, num_comments) + random.randint(0, 200)
                 
-        score = calculate_score(ratio, num_comments) + random.randint(0, 200)
-            
-        if(score > best_score):
-            best_score = score
-            best_post = post
-            
+            if(score > best_score):
+                best_score = score
+                best_post = post
+                
 
-if(best_post != None):
-    print("Target post :", best_post.title + " (" +best_post.url+")")
-    response = treat_response(generate_reply(best_post.title, best_post.selftext, subreddit.display_name))
-    
-    if(is_response_valid(response)):
-        print("\n💬 Answer generated :\n")
-        print(response)
-        best_post.reply(response)
-else:
-    print("No interesting post found")
+    if(best_post != None):
+        print("Target post :", best_post.title + " (" +best_post.url+")")
+        response = treat_response(generate_reply(best_post.title, best_post.selftext, subreddit.display_name))
+        
+        if(is_response_valid(response)):
+            print("\n💬 Answer generated :\n")
+            print(response)
+            best_post.reply(response)
+            
+            secondsBeforeNextComment = random.randint(600, 86400)
+            future = datetime.datetime.now() + datetime.timedelta(seconds=secondsBeforeNextComment)
+            print("Next action in : ")
+            print(future)
+            time.sleep(secondsBeforeNextComment)
+    else:
+        print("No interesting post found")
