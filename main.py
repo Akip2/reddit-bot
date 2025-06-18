@@ -1,22 +1,9 @@
-import os
 import random
-from dotenv import load_dotenv
 from communicator import generate_reply
+from config import CLIENT_ID, PASSWORD, REDDIT_USERNAME, CLIENT_SECRET
 import praw
 import time
 import datetime
-
-load_dotenv()
-
-CLIENT_ID = os.getenv('CLIENT_ID')
-CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-REDDIT_USERNAME = os.getenv('REDDIT_USERNAME')
-PASSWORD = os.getenv('PASSWORD')
-
-assert CLIENT_ID, "CLIENT_ID missing"
-assert CLIENT_SECRET, "CLIENT_SECRET missing"
-assert REDDIT_USERNAME, "REDDIT_USERNAME missing"
-assert PASSWORD, "PASSWORD missing"
 
 # We only want to interact with extreme posts, either with an extremly positive or negative upvote ratio
 MIN_POSITIVE_RATIO = 0.8 # Min ratio to interact with a "positive" post
@@ -95,6 +82,8 @@ while True:
             if(score > best_score):
                 best_score = score
                 best_post = post
+            
+            break
                 
 
     if(best_post != None):
