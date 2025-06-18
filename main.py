@@ -1,6 +1,8 @@
 import os
+import random
 from dotenv import load_dotenv
 from communicator import generate_reply
+from attitude_enum import Attitude
 import praw
 
 load_dotenv()
@@ -22,7 +24,29 @@ MIN_COMMENT_NB = 3
 
 POST_LIMIT = 500
 COMMENT_LIMIT = 15
-SUB = "Advice"
+SUBS = {
+    "AmITheAsshole": Attitude.NEUTRAL,
+    "Advice": Attitude.NEUTRAL,
+    "AskReddit": Attitude.NEUTRAL,
+
+    "liberal": Attitude.NEGATIVE,
+    "politics": Attitude.NEGATIVE,
+    "socialism": Attitude.NEGATIVE,
+    "democrats": Attitude.NEGATIVE,
+    "Feminism": Attitude.NEGATIVE,
+    "changemyview": Attitude.NEGATIVE,
+    "books": Attitude.NEGATIVE,
+
+    "conservative": Attitude.POSITIVE,
+    "AskTrumpSupporters": Attitude.POSITIVE,
+    "The_Donald": Attitude.POSITIVE,
+    "Capitalism": Attitude.POSITIVE,
+    "Libertarian": Attitude.POSITIVE,
+    "MensRights": Attitude.POSITIVE,
+}
+
+def get_random_sub():
+    return random.choice(list(SUBS.keys()))
 
 def is_ratio_extreme(ratio):
     return ratio >= MIN_POSITIVE_RATIO or ratio <= MAX_NEGATIVE_RATIO
@@ -44,19 +68,22 @@ reddit = praw.Reddit(
 
 print("Connected as :", reddit.user.me())
 
-subreddit = reddit.subreddit(SUB)
+sub_name = get_random_sub()
+subreddit = reddit.subreddit(sub_name)
 
 best_post = None
 best_score = 0
 for post in subreddit.new(limit=POST_LIMIT):
+    if not post.is_self:
+        continue
+    
     ratio = post.upvote_ratio
     num_comments = post.num_comments
     
     if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
         positive = ratio >= MIN_POSITIVE_RATIO
-        score = 0
-        
-        score = calculate_score(ratio, num_comments)
+                
+        score = calculate_score(ratio, num_comments) + random.randint(0, 200)
             
         if(score > best_score):
             best_score = score
@@ -65,8 +92,10 @@ for post in subreddit.new(limit=POST_LIMIT):
 
 if(best_post != None):
     print("Target post :", best_post.title + " (" +best_post.url+")")
-    response = generate_reply(best_post.title, best_post.selftext, subreddit.display_name)
+    response = generate_reply(best_post.title, best_post.selftext, subreddit.display_name, SUBS[sub_name])
     print("\n💬 Answer generated :\n")
     print(response)
+    
+    #best_post.reply(response)
 else:
     print("No interesting post found")
