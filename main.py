@@ -2,8 +2,11 @@ import os
 import random
 from dotenv import load_dotenv
 from communicator import generate_reply
-from attitude_enum import Attitude
 import praw
+import io
+import sys
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 load_dotenv()
 
@@ -22,41 +25,45 @@ MIN_POSITIVE_RATIO = 0.8 # Min ratio to interact with a "positive" post
 MAX_NEGATIVE_RATIO = 0.3 # Max ratio to interact with a "negative" post
 MIN_COMMENT_NB = 3
 
-POST_LIMIT = 500
+POST_LIMIT = None
 COMMENT_LIMIT = 15
-SUBS = {
-    "AmITheAsshole": Attitude.NEUTRAL,
-    "Advice": Attitude.NEUTRAL,
-    "AskReddit": Attitude.NEUTRAL,
 
-    "liberal": Attitude.NEGATIVE,
-    "politics": Attitude.NEGATIVE,
-    "socialism": Attitude.NEGATIVE,
-    "democrats": Attitude.NEGATIVE,
-    "Feminism": Attitude.NEGATIVE,
-    "changemyview": Attitude.NEGATIVE,
-    "books": Attitude.NEGATIVE,
+SUBS = [
+    "AskReddit",
+    "TodayILearned",
+    "movies",
+    "television",
+    "gaming",
+    "mildlyinteresting",
+    "Showerthoughts",
+    "NoStupidQuestions",
+    "news",
+    "socialanxiety"
+]
 
-    "conservative": Attitude.POSITIVE,
-    "AskTrumpSupporters": Attitude.POSITIVE,
-    "The_Donald": Attitude.POSITIVE,
-    "Capitalism": Attitude.POSITIVE,
-    "Libertarian": Attitude.POSITIVE,
-    "MensRights": Attitude.POSITIVE,
-}
+def get_random_sub() -> str:
+    return SUBS[random.randint(0, len(SUBS) - 1)]
 
-def get_random_sub():
-    return random.choice(list(SUBS.keys()))
-
-def is_ratio_extreme(ratio):
+def is_ratio_extreme(ratio: float) -> bool:
     return ratio >= MIN_POSITIVE_RATIO or ratio <= MAX_NEGATIVE_RATIO
 
-def calculate_score(ratio, num_comments):
+def calculate_score(ratio: float, num_comments: int) -> float:
     if ratio >= MIN_POSITIVE_RATIO:
         return ratio * 10 + num_comments
     elif ratio <= MAX_NEGATIVE_RATIO:
         return (1 - ratio) * 10 + num_comments
     return 0
+
+def treat_response(response: str) -> str:
+    result = response
+    if(response[0] == '"'):
+        lastQuoteIndex = len(response) - (response[::-1].find('"') + 1)
+        result = response[1:lastQuoteIndex]
+        
+    return result
+
+def is_response_valid(response: str):
+    return response.lower().find("i can't") != 0 and response.lower().find("i cannot") != 0
 
 reddit = praw.Reddit(
     client_id=CLIENT_ID,
@@ -70,6 +77,7 @@ print("Connected as :", reddit.user.me())
 
 sub_name = get_random_sub()
 subreddit = reddit.subreddit(sub_name)
+print("Target sub : "+sub_name)
 
 best_post = None
 best_score = 0
@@ -92,10 +100,11 @@ for post in subreddit.new(limit=POST_LIMIT):
 
 if(best_post != None):
     print("Target post :", best_post.title + " (" +best_post.url+")")
-    response = generate_reply(best_post.title, best_post.selftext, subreddit.display_name, SUBS[sub_name])
-    print("\n💬 Answer generated :\n")
-    print(response)
+    response = treat_response(generate_reply(best_post.title, best_post.selftext, subreddit.display_name))
     
-    #best_post.reply(response)
+    if(is_response_valid(response)):
+        print("\n💬 Answer generated :\n")
+        print(response)
+        best_post.reply(response)
 else:
     print("No interesting post found")

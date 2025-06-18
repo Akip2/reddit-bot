@@ -1,24 +1,14 @@
-from attitude_enum import Attitude
-
 import subprocess
 
 OLLAMA_MODEL = "myBot"
 
-def get_attitude_prompt(attitude: int):
-    if(attitude == Attitude.NEGATIVE):
-        return "Be brief and try to ragebait its author"
-    elif(attitude == Attitude.POSITIVE):
-        return "Be positive and supportive of its author"
-    else:
-        return ""
-
-def generate_reply(post_title: str, post_body: str, subreddit: str, attitude: int) -> str:
+def generate_reply(post_title: str, post_body: str, subreddit: str) -> str:
     prompt = (
-        f"Here is a reddit post in r/{subreddit} :\n\n"
-        f"Title : {post_title}\n\n"
-        f"Text : {post_body}\n\n"
-        f"Answer. "+get_attitude_prompt(attitude)+"\n\n"
-        f"Write only the content of the comment"
+        f"The post is from r/{subreddit}.\n\n"
+        f"Title: {post_title}\n\n"
+        f"Text: {post_body}\n\n"
+        f"Respond to the post. \n\n"
+        f"Write only the body of your Reddit comment. No explanations, no disclaimers."
     )
 
     try:
