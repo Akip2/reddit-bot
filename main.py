@@ -1,9 +1,13 @@
 import random
+import threading
 from communicator import generate_reply
 from config import CLIENT_ID, PASSWORD, REDDIT_USERNAME, CLIENT_SECRET
 import praw
 import time
 import datetime
+from flask import Flask
+
+app = Flask(__name__)
 
 # We only want to interact with extreme posts, either with an extremly positive or negative upvote ratio
 MIN_POSITIVE_RATIO = 0.8 # Min ratio to interact with a "positive" post
@@ -60,45 +64,57 @@ reddit = praw.Reddit(
 
 print("Connected as :", reddit.user.me())
 
-while True: 
-    sub_name = get_random_sub()
-    subreddit = reddit.subreddit(sub_name)
-    print("Target sub : "+sub_name)
+def bot_loop():
+    while True: 
+        sub_name = get_random_sub()
+        subreddit = reddit.subreddit(sub_name)
+        print("Target sub : "+sub_name)
 
-    best_post = None
-    best_score = 0
-    for post in subreddit.new(limit=POST_LIMIT):
-        if not post.is_self:
-            continue
-        
-        ratio = post.upvote_ratio
-        num_comments = post.num_comments
-        
-        if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
-            positive = ratio >= MIN_POSITIVE_RATIO
+        best_post = None
+        best_score = 0
+        for post in subreddit.new(limit=POST_LIMIT):
+            if not post.is_self:
+                continue
+            
+            ratio = post.upvote_ratio
+            num_comments = post.num_comments
+            
+            if(is_ratio_extreme(ratio) and num_comments >= MIN_COMMENT_NB):
+                positive = ratio >= MIN_POSITIVE_RATIO
+                        
+                score = calculate_score(ratio, num_comments) + random.randint(0, 200)
                     
-            score = calculate_score(ratio, num_comments) + random.randint(0, 200)
+                if(score > best_score):
+                    best_score = score
+                    best_post = post
                 
-            if(score > best_score):
-                best_score = score
-                best_post = post
-            
-            break
-                
+                break
+                    
 
-    if(best_post != None):
-        print("Target post :", best_post.title + " (" +best_post.url+")")
-        response = treat_response(generate_reply(best_post.title, best_post.selftext, subreddit.display_name))
-        
-        if(is_response_valid(response)):
-            print("\n💬 Answer generated :\n")
-            print(response)
-            best_post.reply(response)
+        if(best_post != None):
+            print("Target post :", best_post.title + " (" +best_post.url+")")
+            response = treat_response(generate_reply(best_post.title, best_post.selftext, subreddit.display_name))
             
-            secondsBeforeNextComment = random.randint(600, 86400)
-            future = datetime.datetime.now() + datetime.timedelta(seconds=secondsBeforeNextComment)
-            print("Next action in : ")
-            print(future)
-            time.sleep(secondsBeforeNextComment)
-    else:
-        print("No interesting post found")
+            if(is_response_valid(response)):
+                print("\n💬 Answer generated :\n")
+                print(response)
+                best_post.reply(response)
+                
+                secondsBeforeNextComment = random.randint(600, 86400)
+                future = datetime.datetime.now() + datetime.timedelta(seconds=secondsBeforeNextComment)
+                print("Next action in : ")
+                print(future)
+                time.sleep(secondsBeforeNextComment)
+        else:
+            print("No interesting post found")
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+if __name__ == "__main__":
+    thread = threading.Thread(target=bot_loop)
+    thread.daemon = True
+    thread.start()
+
+    app.run(host="0.0.0.0", port=10000)
