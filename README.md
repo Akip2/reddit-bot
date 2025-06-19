@@ -16,12 +16,12 @@ A Reddit bot that scans posts in popular subreddits, generates replies using a l
 
 ## 📁 Project Structure
 
-project/
-├── main.py # Main Reddit interaction logic
-├── communicator.py # Handles API calls to the LLM
-├── config.py # Loads environment variables from .env
-├── requirements.txt # Python dependencies
-└── .env # Sensitive data (not tracked by Git)
+project\
+├── main.py : Main Reddit interaction logic\
+├── communicator.py : Handles API calls to the LLM\
+├── config.py : Loads environment variables from .env\
+├── requirements.txt : Python dependencies\
+└── .env : Sensitive data (not tracked by Git)\
 
 ## 🔐 .env — Required Variables
 
@@ -33,3 +33,22 @@ CLIENT_SECRET=your_reddit_app_secret
 REDDIT_USERNAME=your_reddit_username
 PASSWORD=your_reddit_password
 API_KEY=your_groq_api_key
+```
+---
+
+## ▶️ How to Run the Bot
+
+### 🖥️ Local Development
+
+1. **Clone the repo**:
+   ```bash
+   git clone https://github.com/yourusername/reddit-bot.git
+   cd reddit-bot
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+3. **Create your .env file (see section above for content).**
+4. **Run the bot**:
+   ```bash
+   python main.py
+
