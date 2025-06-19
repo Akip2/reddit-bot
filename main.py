@@ -1,13 +1,9 @@
 import random
-import threading
 from communicator import generate_reply
 from config import CLIENT_ID, PASSWORD, REDDIT_USERNAME, CLIENT_SECRET
 import praw
 import time
 import datetime
-from flask import Flask
-
-app = Flask(__name__)
 
 # We only want to interact with extreme posts, either with an extremly positive or negative upvote ratio
 MIN_POSITIVE_RATIO = 0.8 # Min ratio to interact with a "positive" post
@@ -54,17 +50,8 @@ def treat_response(response: str) -> str:
 def is_response_valid(response: str):
     return response.lower().find("i can't") != 0 and response.lower().find("i cannot") != 0
 
-reddit = praw.Reddit(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    username=REDDIT_USERNAME,
-    password=PASSWORD,
-    user_agent='script:test-bot:v1.0 (by u/' + REDDIT_USERNAME + ')'
-)
 
-print("Connected as :", reddit.user.me())
-
-def bot_loop():
+def bot_loop(reddit):
     while True: 
         sub_name = get_random_sub()
         subreddit = reddit.subreddit(sub_name)
@@ -107,14 +94,15 @@ def bot_loop():
                 time.sleep(secondsBeforeNextComment)
         else:
             print("No interesting post found")
+            
+reddit = praw.Reddit(
+    client_id=CLIENT_ID,
+    client_secret=CLIENT_SECRET,
+    username=REDDIT_USERNAME,
+    password=PASSWORD,
+    user_agent='script:test-bot:v1.0 (by u/' + REDDIT_USERNAME + ')'
+)
 
-@app.route("/")
-def home():
-    return "Bot is running!"
+print("Connected as :", reddit.user.me())
 
-if __name__ == "__main__":
-    thread = threading.Thread(target=bot_loop)
-    thread.daemon = True
-    thread.start()
-
-    app.run(host="0.0.0.0", port=10000)
+bot_loop(reddit)
